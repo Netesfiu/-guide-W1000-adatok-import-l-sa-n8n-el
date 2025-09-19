@@ -1,0 +1,963 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "attachment_0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        688,
+        -16
+      ],
+      "id": "bac0d003-0274-4787-83f3-843aff4794e0",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "keys": {
+          "key": [
+            {
+              "currentKey": "Időbélyeg",
+              "newKey": "start"
+            },
+            {
+              "currentKey": "Érték_1",
+              "newKey": "AM"
+            }
+          ]
+        },
+        "additionalOptions": {}
+      },
+      "type": "n8n-nodes-base.renameKeys",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        -112
+      ],
+      "id": "0e1357cf-5952-470b-bd85-b04a4c5db55f",
+      "name": "Rename \"*_1\" keys for merge"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "id"
+            },
+            {
+              "fieldToAggregate": "internalDate"
+            }
+          ]
+        },
+        "options": {
+          "mergeLists": false
+        }
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -16
+      ],
+      "id": "45be04de-a434-4968-8087-14b73aa82343",
+      "name": "Aggregate_id"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $json.id[0] }}",
+        "simple": false,
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        464,
+        -16
+      ],
+      "id": "2439a39d-58a0-44a0-87d9-0e47052c1015",
+      "name": "Get a message[0]",
+      "webhookId": "2a28f6f9-b2d9-4d3b-a398-fc6a624fbea3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c1uNaKsoVzGcfa9c",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Időbélyeg,Érték",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        912,
+        -304
+      ],
+      "id": "460498fa-53a4-465b-8799-5e67a6d9c9c0",
+      "name": "Extract default data from source (+A)"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Időbélyeg,Érték_1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        912,
+        -112
+      ],
+      "id": "7a10cc32-b593-4fda-a6ba-31902188872d",
+      "name": "Extract '*_1' data from source (-A)"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Időbélyeg,Érték_2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        912,
+        80
+      ],
+      "id": "018d3e79-af07-4a44-b61b-ec82386d2c24",
+      "name": "Extract '*_2' data from source (1_8_0)"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Időbélyeg,Érték_3",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        912,
+        272
+      ],
+      "id": "2d3997ab-fb3a-4962-bc51-0b8c45b0c050",
+      "name": "Extract '*_3' data from source (2_8_0)"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "['start']",
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1360,
+        -208
+      ],
+      "id": "1de8c24a-67cb-4e25-acfa-eac88cfab08b",
+      "name": "Merge (+A; -A)"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $json['start'] }}",
+        "format": "custom",
+        "customFormat": "yyyy-MM-dd HH:00:00ZZ",
+        "outputFieldName": "start",
+        "options": {
+          "includeInputFields": true
+        }
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        2032,
+        -16
+      ],
+      "id": "63351038-e4ba-4d82-a9e1-b5a8db9ffe18",
+      "name": "Convert datetime to Spook format1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// INPUT: items with { start, AP, AM, 1_8_0?, 2_8_0? }\n// OUTPUT: grouped hourly results with cumulative meters\n\nfunction toNum(x, def = 0) {\n  if (x === undefined || x === null || x === '') return def;\n  const n = Number(x);\n  return isNaN(n) ? def : n;\n}\n\n// --- group by hour ---\nconst grouped = {};\nfor (const item of items) {\n  const j = item.json;\n  const hour = j.start; // here already rounded to full hour\n  if (!grouped[hour]) {\n    grouped[hour] = { start: hour, AP: 0, AM: 0, m180: null, m280: null };\n  }\n  grouped[hour].AP += toNum(j.AP);\n  grouped[hour].AM += toNum(j.AM);\n  if (j['1_8_0'] !== undefined) grouped[hour].m180 = toNum(j['1_8_0']);\n  if (j['2_8_0'] !== undefined) grouped[hour].m280 = toNum(j['2_8_0']);\n}\n\n// --- sort by time ---\nconst hours = Object.values(grouped).sort((a, b) => new Date(a.start) - new Date(b.start));\n\n// --- build output ---\nlet last180 = null;\nlet last280 = null;\n\nconst out = [];\nfor (const h of hours) {\n  // if new meter values present -> reset base\n  if (h.m180 !== null) last180 = h.m180;\n  if (h.m280 !== null) last280 = h.m280;\n\n  // if no base yet (e.g. very first row), initialize with sums\n  if (last180 === null) last180 = 0;\n  if (last280 === null) last280 = 0;\n\n  const start180 = last180;\n  const start280 = last280;\n\n  const end180 = start180 + h.AP;\n  const end280 = start280 + h.AM;\n\n  // update for next iteration\n  last180 = end180;\n  last280 = end280;\n\n  out.push({\n    json: {\n      start: h.start,\n      AP: h.AP.toFixed(3),\n      AM: h.AM.toFixed(3),\n      '1_8_0': start180.toFixed(3),\n      '2_8_0': start280.toFixed(3),\n    }\n  });\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2256,
+        -16
+      ],
+      "id": "c754e0df-e7ad-4dca-9154-aed404fc68f9",
+      "name": "Calculate hourly sum and"
+    },
+    {
+      "parameters": {
+        "resource": "service",
+        "operation": "call",
+        "domain": "recorder",
+        "service": "import_statistics",
+        "serviceAttributes": {
+          "attributes": [
+            {
+              "name": "statistic_id",
+              "value": "sensor.grid_energy_import"
+            },
+            {
+              "name": "source",
+              "value": "recorder"
+            },
+            {
+              "name": "unit_of_measurement",
+              "value": "kWh"
+            },
+            {
+              "name": "has_mean",
+              "value": "={{false}}"
+            },
+            {
+              "name": "has_sum",
+              "value": "={{ true }}"
+            },
+            {
+              "name": "stats",
+              "value": "={{ $json.data }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.homeAssistant",
+      "typeVersion": 1,
+      "position": [
+        2928,
+        -112
+      ],
+      "id": "af49c948-ac75-463d-9dc1-bfd41e78ace3",
+      "name": "Spook: update +A hitorical data1",
+      "credentials": {
+        "homeAssistantApi": {
+          "id": "rx4ATVrjetIOAsAI",
+          "name": "Home Assistant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "service",
+        "operation": "call",
+        "domain": "recorder",
+        "service": "import_statistics",
+        "serviceAttributes": {
+          "attributes": [
+            {
+              "name": "statistic_id",
+              "value": "sensor.grid_energy_export"
+            },
+            {
+              "name": "source",
+              "value": "recorder"
+            },
+            {
+              "name": "unit_of_measurement",
+              "value": "kWh"
+            },
+            {
+              "name": "has_mean",
+              "value": "={{false}}"
+            },
+            {
+              "name": "has_sum",
+              "value": "={{ true }}"
+            },
+            {
+              "name": "stats",
+              "value": "={{ $json.data }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.homeAssistant",
+      "typeVersion": 1,
+      "position": [
+        2928,
+        80
+      ],
+      "id": "f97383e5-a560-49fd-9e85-656f8cf37efc",
+      "name": "Spook: update -A hitorical data1",
+      "credentials": {
+        "homeAssistantApi": {
+          "id": "rx4ATVrjetIOAsAI",
+          "name": "Home Assistant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"start\": {{new Date($json.start)}},\n  \"state\": {{ $json['1_8_0'] }},\n  \"sum\": {{ $json['1_8_0'] }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2480,
+        -112
+      ],
+      "id": "943e0c48-95fc-42c0-9ff2-ac7b267bfb63",
+      "name": "Generate 1_8_0 list for stats"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"start\": {{new Date($json.start)}},\n  \"state\": {{ $json['2_8_0'] }},\n  \"sum\": {{ $json['2_8_0'] }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2480,
+        80
+      ],
+      "id": "0ae741e7-b31e-4092-8161-ea1b81a6255d",
+      "name": "Generate 2_8_0 list for stats"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "start,state, sum",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2704,
+        -112
+      ],
+      "id": "7c02ab69-26fa-4457-95a9-d287a71c747c",
+      "name": "Generate 1_8_0 stats"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "start,state, sum",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2704,
+        80
+      ],
+      "id": "a799a87e-0fb2-49c9-987c-ae07c44d4c0f",
+      "name": "Generate 2_8_0 stats"
+    },
+    {
+      "parameters": {
+        "operation": "addToDate",
+        "magnitude": "1899-12-30",
+        "timeUnit": "=days",
+        "duration": "={{ $json['start'] + 0.00000001}}",
+        "outputFieldName": "start",
+        "options": {
+          "includeInputFields": true
+        }
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        1808,
+        -16
+      ],
+      "id": "b4d5aabc-ef00-4e5b-8522-71aae42dddb1",
+      "name": "Convert Excel time2"
+    },
+    {
+      "parameters": {
+        "resource": "state",
+        "operation": "upsert",
+        "entityId": "input_number.grid_export_meter",
+        "state": "={{ $('Generate 2_8_0 stats').item.json.data.at(-1).state }}"
+      },
+      "type": "n8n-nodes-base.homeAssistant",
+      "typeVersion": 1,
+      "position": [
+        3152,
+        80
+      ],
+      "id": "ef99d3b6-e736-4fa8-be1e-414cf01d2a4a",
+      "name": "Update input_number.exportt entity state1",
+      "credentials": {
+        "homeAssistantApi": {
+          "id": "rx4ATVrjetIOAsAI",
+          "name": "Home Assistant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "state",
+        "operation": "upsert",
+        "entityId": "input_number.grid_import_meter",
+        "state": "={{ $('Generate 1_8_0 stats').item.json.data.at(-1).state }}"
+      },
+      "type": "n8n-nodes-base.homeAssistant",
+      "typeVersion": 1,
+      "position": [
+        3152,
+        -112
+      ],
+      "id": "a7138ba8-5faf-4e54-b35b-e8ffb34fe3b9",
+      "name": "Update input_number.import entity state1",
+      "credentials": {
+        "homeAssistantApi": {
+          "id": "rx4ATVrjetIOAsAI",
+          "name": "Home Assistant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "labelIds": [],
+          "sender": "noreply@eon.com"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -208,
+        80
+      ],
+      "id": "83c38839-59e1-48b2-a769-d045a23f7581",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c1uNaKsoVzGcfa9c",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 14
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -432,
+        -112
+      ],
+      "id": "e4cc55bf-d4ac-4015-b9d1-7385fa76513f",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 1,
+        "filters": {
+          "sender": "noreply@eon.com"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -208,
+        -112
+      ],
+      "id": "b0212209-d842-43eb-8ca0-0c0767b2ab73",
+      "name": "Get last eon message",
+      "webhookId": "d48f4845-7cc0-49b4-8c53-56a838465f7e",
+      "alwaysOutputData": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c1uNaKsoVzGcfa9c",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3b78aa20-1a72-4d43-9428-d754e9a51c55",
+              "leftValue": "={{ $json.Subject }}",
+              "rightValue": "[EON-W1000]",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        -16
+      ],
+      "id": "1eb6af74-3aef-4b52-a0ae-c79edcb7e9b7",
+      "name": "Check subject"
+    },
+    {
+      "parameters": {
+        "keys": {
+          "key": [
+            {
+              "currentKey": "Időbélyeg",
+              "newKey": "start"
+            },
+            {
+              "currentKey": "Érték",
+              "newKey": "AP"
+            }
+          ]
+        },
+        "additionalOptions": {}
+      },
+      "type": "n8n-nodes-base.renameKeys",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        -304
+      ],
+      "id": "b1dc075c-7fd0-4ebb-84b8-26c1ccc6a20a",
+      "name": "Rename keys for merge"
+    },
+    {
+      "parameters": {
+        "keys": {
+          "key": [
+            {
+              "currentKey": "Időbélyeg",
+              "newKey": "start"
+            },
+            {
+              "currentKey": "Érték_2",
+              "newKey": "1_8_0"
+            }
+          ]
+        },
+        "additionalOptions": {}
+      },
+      "type": "n8n-nodes-base.renameKeys",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        80
+      ],
+      "id": "12355c97-949f-4161-b2e9-2dcb4ca55849",
+      "name": "Rename \"*_2\" keys for merge"
+    },
+    {
+      "parameters": {
+        "keys": {
+          "key": [
+            {
+              "currentKey": "Időbélyeg",
+              "newKey": "start"
+            },
+            {
+              "currentKey": "Érték_3",
+              "newKey": "2_8_0"
+            }
+          ]
+        },
+        "additionalOptions": {}
+      },
+      "type": "n8n-nodes-base.renameKeys",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        272
+      ],
+      "id": "da3a1a85-e0cc-4e51-8f0d-67bc16534b65",
+      "name": "Rename \"*_3\" keys for merge"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "['start']",
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1584,
+        -16
+      ],
+      "id": "6fb9cace-ddd8-4aa5-a10e-85a16770b057",
+      "name": "Merge (+A; -A; 180; 280)"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "['start']",
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1360,
+        176
+      ],
+      "id": "6093add5-f252-4d83-9e13-616598746f6b",
+      "name": "Merge (180;280)"
+    }
+  ],
+  "connections": {
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Extract default data from source (+A)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract '*_1' data from source (-A)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract '*_2' data from source (1_8_0)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract '*_3' data from source (2_8_0)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rename \"*_1\" keys for merge": {
+      "main": [
+        [
+          {
+            "node": "Merge (+A; -A)",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Aggregate_id": {
+      "main": [
+        [
+          {
+            "node": "Get a message[0]",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a message[0]": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract default data from source (+A)": {
+      "main": [
+        [
+          {
+            "node": "Rename keys for merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract '*_1' data from source (-A)": {
+      "main": [
+        [
+          {
+            "node": "Rename \"*_1\" keys for merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract '*_2' data from source (1_8_0)": {
+      "main": [
+        [
+          {
+            "node": "Rename \"*_2\" keys for merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract '*_3' data from source (2_8_0)": {
+      "main": [
+        [
+          {
+            "node": "Rename \"*_3\" keys for merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge (+A; -A)": {
+      "main": [
+        [
+          {
+            "node": "Merge (+A; -A; 180; 280)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert datetime to Spook format1": {
+      "main": [
+        [
+          {
+            "node": "Calculate hourly sum and",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate hourly sum and": {
+      "main": [
+        [
+          {
+            "node": "Generate 1_8_0 list for stats",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate 2_8_0 list for stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Spook: update +A hitorical data1": {
+      "main": [
+        [
+          {
+            "node": "Update input_number.import entity state1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Spook: update -A hitorical data1": {
+      "main": [
+        [
+          {
+            "node": "Update input_number.exportt entity state1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 1_8_0 list for stats": {
+      "main": [
+        [
+          {
+            "node": "Generate 1_8_0 stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 2_8_0 list for stats": {
+      "main": [
+        [
+          {
+            "node": "Generate 2_8_0 stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 1_8_0 stats": {
+      "main": [
+        [
+          {
+            "node": "Spook: update +A hitorical data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 2_8_0 stats": {
+      "main": [
+        [
+          {
+            "node": "Spook: update -A hitorical data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Excel time2": {
+      "main": [
+        [
+          {
+            "node": "Convert datetime to Spook format1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check subject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get last eon message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get last eon message": {
+      "main": [
+        [
+          {
+            "node": "Check subject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check subject": {
+      "main": [
+        [
+          {
+            "node": "Aggregate_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rename keys for merge": {
+      "main": [
+        [
+          {
+            "node": "Merge (+A; -A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rename \"*_2\" keys for merge": {
+      "main": [
+        [
+          {
+            "node": "Merge (180;280)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rename \"*_3\" keys for merge": {
+      "main": [
+        [
+          {
+            "node": "Merge (180;280)",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge (+A; -A; 180; 280)": {
+      "main": [
+        [
+          {
+            "node": "Convert Excel time2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge (180;280)": {
+      "main": [
+        [
+          {
+            "node": "Merge (+A; -A; 180; 280)",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "32eb0358d11ac284aaa8761de9f9246973b5e8ffadf6892ebb44540d704f267d"
+  }
+}
