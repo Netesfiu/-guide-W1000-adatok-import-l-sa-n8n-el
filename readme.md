@@ -105,7 +105,7 @@ template:
 ### **Csatolmány feldolgozás**:
 <img width="1015" height="491" alt="image" src="https://github.com/user-attachments/assets/96be0e5e-ea86-4ca4-a973-068bf70c83c6" />
 
-* A táblázat a következőképpen tartalmazza a szükséges adatokat:
+* Az `.xlsx` táblázat a következőképpen tartalmazza a szükséges adatokat:
 
 pod | Időbélyeg | Változó | Érték | Mértékegység | Változó | Érték | Mértékegység | Változó | Érték | Mértékegység | Változó | Érték | Mértékegység |  
 -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | --
@@ -127,7 +127,7 @@ Mivel a lekérdezésben ismétlődő oszlopnevek szerepelnek a workflow a követ
 | ... | ... | ... | ... | ... |
 
 * ezt követően az `start` oszlopba található időpontok átkonvertálásra kerülnek ISO időbélyegre (az excelben a "0" értékű dátummezők "1900 január 0."-nak felelnek meg) és kerekíti az időpontokat egész órára.
-* végül az alábbi képlet a `code` node-ban összesíti a `+A` és `-A` 15 perces adatait az adott órában és kiszámolja ennek megfelelően az `1_8_0` és `2_8_0` órás adatait az sorok `[undefined]` mezőiben.
+* `code {}` node összesíti a `+A` és `-A` 15 perces adatait az adott órában és kiszámolja ennek megfelelően az `1_8_0` és `2_8_0` órás adatait az sorok `[undefined]` mezőiben.
 
 ### `stats` adattömb generálása
 
