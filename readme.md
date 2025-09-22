@@ -15,8 +15,9 @@ A csatolt **XLSX** fájlból kinyeri a szükséges oszlopokat, órára csoportos
   *   HACS addon innen érhető el: [Rbillon59/home-assistant-addons](https://github.com/Rbillon59/home-assistant-addons)
   *   [n8n hivatalos docker compose sablon](https://docs.n8n.io/hosting/installation/server-setups/docker-compose/#6-create-docker-compose-file)
   *   [n8n egyszerűsített docker compose sablon](main/n8n-docker-compose.yaml)
-* Gmail API hitelesítés (OAuth2) **read-only** e-mail hozzáféréssel ahhoz a fiókhoz amelyikre az e-mail érkezik
+* (Gmail esetén) Gmail API hitelesítés (OAuth2) **read-only** e-mail hozzáféréssel ahhoz a fiókhoz amelyikre az e-mail érkezik
   * Beállítási útmutató [itt érhető el](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/)
+* (IMAP esetén) IMAP szolgáltató hitelesítési adatok
 * Home Assistant elérés **Long-Lived Access Token**-nel vagy API kulccsal
   * Beállítási útmutató [itt érhető el](https://docs.n8n.io/integrations/builtin/credentials/homeassistant/)
 * Spook integráció
@@ -99,8 +100,9 @@ template:
 * A workflow 2 féle képpen fut le:
   1. **időzítés alapján**: Minden nap a node-ban megadott órában
   2. **Gmail alapján**: A Gmail node elindítja a lefuttatást, ha a `noreply@eon.com` címtől érkezik levél a postafiókba.
-* Az ezt követő szakaszban a node megvizsgálja, hogy a levél tárgyában szerepel-e a portálon megadott tárgy (alapértelmezetten: `[EON-W1000]`)
-* Amennyiben a levél a tárgy szerint leolvasást tartalmaz letölti a benne található `.xlsx` fájlt további feldolgozásra.
+  3. **IMAP alapján**: Az IMAP node elindítja a lefuttatást, ha a következő szabály teljesül: `["UNSEEN",["OR",["FROM","noreply@eon.com"],["SUBJECT","[EON-W1000]"]]]`
+* Az ezt követő szakaszban a node megvizsgálja, hogy a levél tárgyában szerepel-e a portálon megadott tárgy (Gmail és Időzítés alapján) (alapértelmezetten: `[EON-W1000]`) valamint, hogy a payload-ban található melléklet táblázatot tartalmaz-e (xls, vagy xlsx)
+* Amennyiben a levél a tárgy és a melléklet szerint leolvasást tartalmaz letölti a benne található `.xlsx` fájlt további feldolgozásra.
 
 ### **Csatolmány feldolgozás**:
 <img width="1015" height="491" alt="image" src="https://github.com/user-attachments/assets/96be0e5e-ea86-4ca4-a973-068bf70c83c6" />
