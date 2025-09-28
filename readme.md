@@ -1,13 +1,35 @@
 # E.ON W1000 → n8n → Home Assistant (Spook) "integráció"
 
-Ez a repó egy n8n workflow sablont tartalmaz, ami az E.ON portálról e-mailben érkező, **15 perces +A/-A** (import/export) adatokkal és a **1.8.0 / 2.8.0** napi mérőóra-állásokkal dolgozik.
+Ez a repó n8n workflow sablonokat tartalmaz tartalmaz, ami az E.ON portálról e-mailben érkező, **15 perces +A/-A** (import/export) adatokkal és a **1.8.0 / 2.8.0** napi mérőóra-állásokkállásokat tudja az ütemezett exportok alapján importálni a Homeassistant-be.
 A csatolt **XLSX** fájlból kinyeri a szükséges oszlopokat, órára csoportosítja a negyedórás értékeket, majd:
 
 * frissíti a **Spook/Recorder** statisztikáit `sensor.grid_energy_import` és `sensor.grid_energy_export` ID-k alatt, és
 * beállítja az aktuális mérőóra-állást a `input_number.grid_import_meter` és `input_number.grid_export_meter` entitásokon.
 
 > [!NOTE]
-> A workflow-t szükséges lehet változtatni, amennyiben az EON által küldött ütemezett exportok kézbesítésében változás történik. A változásokat igyekszek lekövetni. Ha az exportált adatokban változás történik kérem, hogy [jelezd](https://github.com/Netesfiu/EON-W1000-n8n/issues/new)!
+> A workflowkat szükséges lehet változtatni, amennyiben az EON által küldött ütemezett exportok kézbesítésében változás történik. Ha az exportált adatokban változás történik kérem, hogy [jelezd](https://github.com/Netesfiu/EON-W1000-n8n/issues/new)!
+
+## Workflow sablonok
+### [\[Netesfiu\] Alap workflow](/netesfiu/HA-W1000-workflow.json)
+Ez a sablon egy workflow-ban kezeli a teljes folyamatot.
+
+## Közreműködés
+Ha szeretnéd a saját workflow-dat megosztani azt PR formájában megteheted a következő módon:
+* Készíts egy új mappát a felhasználóneveddel
+* A mappában mentsd le az általad készített workflow-t `.json`-formátumba
+  * n8n-en belül a workflow nézetben: Ctrl-A, majd Ctrl-C
+  * a `.json` file-ba pedig Ctrl-V
+* Ha a beállításhoz szükséges készíts a mappában egy `readme` file-t.
+
+* frissítsd ezt a `readme`-t a workflow sablonoknál:
+
+```markdown
+### [\[<FELHASZNÁLÓNÉV>\] <WORKFLOW_NEVE>](/<FELHASZNÁLÓNÉV>/<WORKFLOW NEVE>.json)
+<workflow leírása>
+```
+
+> [!IMPORTANT]
+> Győződj meg róla, hogy ha HTTP node-ot használsz nincsenek benne a saját hitelesítő adataid , mint pl. Bearer token (a Gmail, és Homeassistant node-ok nem osztják meg.)
 
 ## Követelmények
 
@@ -91,74 +113,6 @@ template:
 2. **n8n hitelesítések beállítása**
    A hitelesítési beállítások a homeassistant és a Gmail-node okban szükséges beállítani. A beállítás menetét a [#követelmények](#követelmények) pontnál találod
 
-## Működés röviden
-
-### **indítási feltétel és E-mail letöltés**:
-
-<img width="926" height="310" alt="image" src="https://github.com/user-attachments/assets/d3253977-291d-498d-8a2f-1508fc0e3b69" />
-
-* A workflow 2 féle képpen fut le:
-  1. **időzítés alapján**: Minden nap a node-ban megadott órában
-  2. **Gmail alapján**: A Gmail node elindítja a lefuttatást, ha a `noreply@eon.com` címtől érkezik levél a postafiókba.
-  3. **IMAP alapján**: Az IMAP node elindítja a lefuttatást, ha a következő szabály teljesül: `["UNSEEN",["OR",["FROM","noreply@eon.com"],["SUBJECT","[EON-W1000]"]]]`
-* Az ezt követő szakaszban a node megvizsgálja, hogy a levél tárgyában szerepel-e a portálon megadott tárgy (Gmail és Időzítés alapján) (alapértelmezetten: `[EON-W1000]`) valamint, hogy a payload-ban található melléklet táblázatot tartalmaz-e (xls, vagy xlsx)
-* Amennyiben a levél a tárgy és a melléklet szerint leolvasást tartalmaz letölti a benne található `.xlsx` fájlt további feldolgozásra.
-
-### **Csatolmány feldolgozás**:
-<img width="1015" height="491" alt="image" src="https://github.com/user-attachments/assets/96be0e5e-ea86-4ca4-a973-068bf70c83c6" />
-
-* Az `.xlsx` táblázat a következőképpen tartalmazza a szükséges adatokat:
-
-pod | Időbélyeg | Változó | Érték | Mértékegység | Változó | Érték | Mértékegység | Változó | Érték | Mértékegység | Változó | Érték | Mértékegység |  
--- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | --
-HU000120-11-| 45905 | +A | 0.222 | kWh | -A | 0 | kWh | DP_1-1:1.8.0*0 | 32673.404 | kWh | DP_1-1:2.8.0*0 | 39435.881 | kWh |  
-HU000120-11-| 45905.010416666664 | +A | 0.418 | kWh | -A | 0 | kWh | DP_1-1:1.8.0*0 | [undefined] | [undefined] | DP_1-1:2.8.0*0 | [undefined] | [undefined] |  
-HU000120-11-| 45905.020833333336 | +A | 0.246 | kWh | -A | 0 | kWh | DP_1-1:1.8.0*0 | [undefined] | [undefined] | DP_1-1:2.8.0*0 | 
-
-Mivel a lekérdezésben ismétlődő oszlopnevek szerepelnek a workflow a következőképpen nevezi át az oszlopokat:
-| pod | Időbélyeg | Változó | Érték | Mértékegység | Változó_1 | Érték_1 | Mértékegység_1 | Változó_2 | Érték_2 | Mértékegység_2 | Változó_3 | Érték_3 | Mértékegység_3 |  
-| -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- |
-
-* a workflow az utolsó `merge` node-nál a következőképpen alakítja át az adatokat:
-
-| start | AP | AM | 1_8_0 | 2_8_0 |
-| -- | -- | -- | -- | -- |
-| 45912 | 0.135 | 0 | 32749.288 | 39627.868	|
-| 45912.010416666664 | 0.207 | 0 | [undefined] | [undefined] |
-| 45912.020833333336 |	0.153 |	0 |	[undefined] |	[undefined]	|
-| ... | ... | ... | ... | ... |
-
-* ezt követően az `start` oszlopba található időpontok átkonvertálásra kerülnek ISO időbélyegre (az excelben a "0" értékű dátummezők "1900 január 0."-nak felelnek meg) és kerekíti az időpontokat egész órára.
-* `code {}` node összesíti a `+A` és `-A` 15 perces adatait az adott órában és kiszámolja ennek megfelelően az `1_8_0` és `2_8_0` órás adatait az sorok `[undefined]` mezőiben.
-
-### `stats` adattömb generálása
-
-<img width="785" height="334" alt="image" src="https://github.com/user-attachments/assets/168215a5-3c2f-4e83-aa1b-8c2a0e3e70ec" />
-
-* A workflow itt az órásra kiszámított `1_8_0` és `2_8_0` értékekhez tartozó oszlopokat átnevezi a Spook `recorder.import_statistics` szolgáltatása által elfogadott nevekre. Ezt követően egy listába rakja az oszlop értékeit és a kapott listával meghívja a `recorder.import_statistics` szolgáltatást és frissíti a korábban elkészített `input_number` entitásokat az `1_8_0` és `2_8_0` listák utolsó elemével (utolsó ismert óraállás)
-
-## Időzítés
-
-* Az E.ON jellemzően **10:00** után küldi a legfrissebb adatokat.
-* Ajánlott időzítés (Schedule Trigger): **10:10** vagy később (példában 14:00).
-
-## Fontos node-ok és kifejezések
-
-* **Gmail → Get last message**: `filters.sender = noreply@eon.com`, `limit = 1` (példa)
-* **IF (Subject szűrés)**: bal érték `{{$json.Subject}}`, jobb érték `"[EON-W1000]"`
-* **Attachment**: `attachment_0` (ha több csatolmány érkezhet, érdemes ellenőrizni a MIME-típusokat / nevet)
-* **Excel idő konverzió** (`Convert Excel time2`):
-
-  * Módszer: `addToDate` az **1899-12-30** bázisnaphoz (Excel epoch)
-  * `duration: {{$json['start'] + 0.00000001}}` – apró offset a float hibák ellen
-* **Dátum formátum a Spookhoz**: `yyyy-MM-dd HH:00:00ZZ`
-* **Recorder import payload** (`service: recorder.import_statistics`):
-
-  * `statistic_id`: pl. `sensor.grid_energy_import`
-  * `unit_of_measurement`: `kWh`
-  * `has_mean: {{false}}`, `has_sum: {{true}}`
-  * `stats`: az `Aggregate` node által készített `data` tömb (elemei: `{ start, state, sum }`)
-
-Remélem a leírásom segített és hasznosnak találtad. Ha szeretnéd a munkámat támogatni, akkor egy kávéval megtehedet :coffee:
+> Remélem a leírásom segített és hasznosnak találtad. Ha szeretnéd a munkámat támogatni, akkor egy kávéval megtehedet :coffee:
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/H2H06KNT5)
