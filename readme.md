@@ -13,7 +13,7 @@ A csatolt **XLSX** fájlból kinyeri a szükséges oszlopokat, órára csoportos
 ### [\[Netesfiu\] Alap workflow](/netesfiu/Alap-workflow.json)
 Ez a sablon egy workflow-ban kezeli a teljes folyamatot.
 
-### [\[ZsBT\] három workflow workflow](/zsbt/README.md)
+### [\[ZsBT\] három workflow](/zsbt/README.md)
 Három külön workflow, hogy az Excel feldolgozás szükség szerint cserélhető legyen.
 
 ## Közreműködés
