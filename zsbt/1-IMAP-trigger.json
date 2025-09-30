@@ -1,0 +1,77 @@
+{
+  "name": "EON receive email",
+  "nodes": [
+    {
+      "parameters": {
+        "downloadAttachments": true,
+        "options": {
+          "customEmailConfig": "=[\"UNSEEN\",[\"OR\",[\"FROM\",\"noreply@eon.com\"],[\"SUBJECT\",\"balfasz adatkeres\"]]]",
+          "trackLastMessageId": true
+        }
+      },
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2.1,
+      "position": [
+        -1392,
+        320
+      ],
+      "id": "08c5e647-8fd2-4fa3-a479-d46ff3b70716",
+      "name": "Email Trigger (IMAP)",
+      "credentials": {
+        "imap": {
+          "id": "f5wooaLqLMlpqrRS",
+          "name": "IMAP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "C9c1xEGVCIN9hm2H",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/C9c1xEGVCIN9hm2H",
+          "cachedResultName": "parse attachments"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -1184,
+        320
+      ],
+      "id": "07c2733c-ca43-4598-882c-54214fd8f8ef",
+      "name": "Call 'parse attachments'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Email Trigger (IMAP)": {
+      "main": [
+        [
+          {
+            "node": "Call 'parse attachments'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6dd34d84-1573-4061-8107-2462682dfbfd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9fe57afc4f6e6adc427957894c6a3585c9f0697a1fc3e75decd3c7da514dcf7e"
+  },
+  "id": "Q9RvbCISYkz220Ts",
+  "tags": []
+}

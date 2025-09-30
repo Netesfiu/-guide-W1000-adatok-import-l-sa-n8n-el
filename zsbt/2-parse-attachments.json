@@ -1,0 +1,577 @@
+{
+  "name": "EON parse attachments",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "attachment_0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        288
+      ],
+      "id": "927cc12f-bfad-405f-9118-0808b6370ff5",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "keys": {
+          "key": [
+            {
+              "currentKey": "Időbélyeg",
+              "newKey": "start"
+            },
+            {
+              "currentKey": "Érték_1",
+              "newKey": "AM"
+            }
+          ]
+        },
+        "additionalOptions": {}
+      },
+      "type": "n8n-nodes-base.renameKeys",
+      "typeVersion": 1,
+      "position": [
+        224,
+        192
+      ],
+      "id": "756f9a93-204f-4094-bae3-33cfc063087d",
+      "name": "Rename \"*_1\" keys for merge"
+    },
+    {
+      "parameters": {
+        "keys": {
+          "key": [
+            {
+              "currentKey": "Időbélyeg",
+              "newKey": "start"
+            },
+            {
+              "currentKey": "Érték_2",
+              "newKey": "1_8_0"
+            }
+          ]
+        },
+        "additionalOptions": {}
+      },
+      "type": "n8n-nodes-base.renameKeys",
+      "typeVersion": 1,
+      "position": [
+        224,
+        384
+      ],
+      "id": "9cb823f2-bbca-45c8-b8e1-f68c5c8811c2",
+      "name": "Rename \"*_1\" keys for merge1"
+    },
+    {
+      "parameters": {
+        "keys": {
+          "key": [
+            {
+              "currentKey": "Időbélyeg",
+              "newKey": "start"
+            },
+            {
+              "currentKey": "Érték_3",
+              "newKey": "2_8_0"
+            }
+          ]
+        },
+        "additionalOptions": {}
+      },
+      "type": "n8n-nodes-base.renameKeys",
+      "typeVersion": 1,
+      "position": [
+        224,
+        592
+      ],
+      "id": "cefebfd5-9d3b-4bdf-b947-5bc4ccdb8056",
+      "name": "Rename \"*_1\" keys for merge2"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Időbélyeg,Érték",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fa076bad-a384-4f0c-8f8c-4d497a7cd4db",
+      "name": "Extract default data from source (+A)"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Időbélyeg,Érték_1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ],
+      "id": "dbce3ffe-59a2-4f49-8ed5-abe564e84341",
+      "name": "Extract '*_1' data from source (-A)"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Időbélyeg,Érték_2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        0,
+        384
+      ],
+      "id": "69aafae3-f6f9-49f7-b511-7cdf6babc2a5",
+      "name": "Extract '*_2' data from source (1_8_0)"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Időbélyeg,Érték_3",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        0,
+        592
+      ],
+      "id": "88cd361b-9341-4545-887f-075babb8269f",
+      "name": "Extract '*_3' data from source (2_8_0)"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "['start']",
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "877cc09d-9afa-4b68-9c61-c4270db741d0",
+      "name": "Merge (+A; -A)"
+    },
+    {
+      "parameters": {
+        "keys": {
+          "key": [
+            {
+              "currentKey": "Időbélyeg",
+              "newKey": "start"
+            },
+            {
+              "currentKey": "Érték",
+              "newKey": "AP"
+            }
+          ]
+        },
+        "additionalOptions": {}
+      },
+      "type": "n8n-nodes-base.renameKeys",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "0d41892a-8609-4c9c-bdba-c98074869608",
+      "name": "Rename \"*_1\" keys for merge3"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "['start']",
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        384
+      ],
+      "id": "4b5b91e6-6932-4deb-88f1-36fc16e8c854",
+      "name": "Merge (+A; -A)1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "['start']",
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        192
+      ],
+      "id": "73e38ec3-3edc-4f7e-8bd3-faf18efdf176",
+      "name": "Merge (+A; -A)2"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $json['start'] }}",
+        "format": "custom",
+        "customFormat": "yyyy-MM-dd HH:00:00ZZ",
+        "outputFieldName": "start",
+        "options": {
+          "includeInputFields": true
+        }
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        192
+      ],
+      "id": "9f6816ff-9fd5-417b-8d95-ac48ea883c12",
+      "name": "Convert datetime to Spook format1"
+    },
+    {
+      "parameters": {
+        "operation": "addToDate",
+        "magnitude": "1899-12-30",
+        "timeUnit": "=days",
+        "duration": "={{ $json['start'] + 0.00000001}}",
+        "outputFieldName": "start",
+        "options": {
+          "includeInputFields": true
+        }
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        896,
+        192
+      ],
+      "id": "e0a258d3-14bf-4262-9c04-ca7ef3086bb9",
+      "name": "Convert Excel time2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3b78aa20-1a72-4d43-9428-d754e9a51c55",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "balfasz adatkeres",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "a046b65a-72b7-4eff-b97a-ad09acc1e753",
+              "leftValue": "={{$binary.attachment_0 ? true : false}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "4cfbc149-f429-4a68-a908-95e7db6906c6",
+              "leftValue": "={{ [\"xls\", \"xlsx\"].includes($binary.attachment_0.fileExtension.toLowerCase()) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -448,
+        384
+      ],
+      "id": "eef393a9-172c-421b-a35b-e30ab6d4c2ce",
+      "name": "If attachment_0 is xlsx"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        496
+      ],
+      "id": "d74ae1e5-2a30-433a-9b39-ef26b090a310",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -688,
+        384
+      ],
+      "id": "b5ec01e1-ce74-4245-99d8-e9d92f83286d",
+      "name": "receive email data"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "tiRznro3lGh2ezsC",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/tiRznro3lGh2ezsC",
+          "cachedResultName": "store in HA"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1360,
+        192
+      ],
+      "id": "f8dc42ab-65b7-4ae5-9d43-1afb05d6fc9f",
+      "name": "Call 'store in HA'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Extract default data from source (+A)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract '*_1' data from source (-A)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract '*_2' data from source (1_8_0)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract '*_3' data from source (2_8_0)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rename \"*_1\" keys for merge": {
+      "main": [
+        [
+          {
+            "node": "Merge (+A; -A)",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Rename \"*_1\" keys for merge1": {
+      "main": [
+        [
+          {
+            "node": "Merge (+A; -A)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rename \"*_1\" keys for merge2": {
+      "main": [
+        [
+          {
+            "node": "Merge (+A; -A)1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Extract default data from source (+A)": {
+      "main": [
+        [
+          {
+            "node": "Rename \"*_1\" keys for merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract '*_1' data from source (-A)": {
+      "main": [
+        [
+          {
+            "node": "Rename \"*_1\" keys for merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract '*_2' data from source (1_8_0)": {
+      "main": [
+        [
+          {
+            "node": "Rename \"*_1\" keys for merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract '*_3' data from source (2_8_0)": {
+      "main": [
+        [
+          {
+            "node": "Rename \"*_1\" keys for merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge (+A; -A)": {
+      "main": [
+        [
+          {
+            "node": "Merge (+A; -A)2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rename \"*_1\" keys for merge3": {
+      "main": [
+        [
+          {
+            "node": "Merge (+A; -A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge (+A; -A)1": {
+      "main": [
+        [
+          {
+            "node": "Merge (+A; -A)2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge (+A; -A)2": {
+      "main": [
+        [
+          {
+            "node": "Convert Excel time2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Excel time2": {
+      "main": [
+        [
+          {
+            "node": "Convert datetime to Spook format1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If attachment_0 is xlsx": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "receive email data": {
+      "main": [
+        [
+          {
+            "node": "If attachment_0 is xlsx",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert datetime to Spook format1": {
+      "main": [
+        [
+          {
+            "node": "Call 'store in HA'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b50d0459-8c6a-434d-a78e-7e7cd1485a51",
+  "meta": {
+    "instanceId": "9fe57afc4f6e6adc427957894c6a3585c9f0697a1fc3e75decd3c7da514dcf7e"
+  },
+  "id": "C9c1xEGVCIN9hm2H",
+  "tags": []
+}
