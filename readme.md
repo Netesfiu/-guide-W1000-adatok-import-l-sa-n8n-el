@@ -10,7 +10,7 @@ A csatolt **XLSX** fájlból kinyeri a szükséges oszlopokat, órára csoportos
 > A workflowkat szükséges lehet változtatni, amennyiben az EON által küldött ütemezett exportok kézbesítésében változás történik. Ha az exportált adatokban változás történik kérem, hogy [jelezd](https://github.com/Netesfiu/EON-W1000-n8n/issues/new)!
 
 ## Workflow sablonok
-### [\[Netesfiu\] Alap workflow](/netesfiu/README.md)
+### [\[Netesfiu\] Alap workflow](/netesfiu/readme.md)
 Ez a sablon egy workflow-ban kezeli a teljes folyamatot.
 
 ### [\[ZsBT\] három workflow](/zsbt/README.md)
