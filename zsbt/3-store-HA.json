@@ -1,0 +1,343 @@
+{
+  "name": "EON store in HA",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// INPUT: items with { start, AP, AM, 1_8_0?, 2_8_0? }\n// OUTPUT: grouped hourly results with cumulative meters\n\nfunction toNum(x, def = 0) {\n  if (x === undefined || x === null || x === '') return def;\n  const n = Number(x);\n  return isNaN(n) ? def : n;\n}\n\n// --- group by hour ---\nconst grouped = {};\nfor (const item of items) {\n  const j = item.json;\n  const hour = j.start; // here already rounded to full hour\n  if (!grouped[hour]) {\n    grouped[hour] = { start: hour, AP: 0, AM: 0, m180: null, m280: null };\n  }\n  grouped[hour].AP += toNum(j.AP);\n  grouped[hour].AM += toNum(j.AM);\n  if (j['1_8_0'] !== undefined) grouped[hour].m180 = toNum(j['1_8_0']);\n  if (j['2_8_0'] !== undefined) grouped[hour].m280 = toNum(j['2_8_0']);\n}\n\n// --- sort by time ---\nconst hours = Object.values(grouped).sort((a, b) => new Date(a.start) - new Date(b.start));\n\n// --- build output ---\nlet last180 = null;\nlet last280 = null;\n\nconst out = [];\nfor (const h of hours) {\n  // if new meter values present -> reset base\n  if (h.m180 !== null) last180 = h.m180;\n  if (h.m280 !== null) last280 = h.m280;\n\n  // if no base yet (e.g. very first row), initialize with sums\n  if (last180 === null) last180 = 0;\n  if (last280 === null) last280 = 0;\n\n  const start180 = last180;\n  const start280 = last280;\n\n  const end180 = start180 + h.AP;\n  const end280 = start280 + h.AM;\n\n  // update for next iteration\n  last180 = end180;\n  last280 = end280;\n\n  out.push({\n    json: {\n      start: h.start,\n      AP: h.AP.toFixed(3),\n      AM: h.AM.toFixed(3),\n      '1_8_0': start180.toFixed(3),\n      '2_8_0': start280.toFixed(3),\n    }\n  });\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        96
+      ],
+      "id": "d58c9ebc-4063-43ef-89db-a58597190063",
+      "name": "Calculate hourly sum and"
+    },
+    {
+      "parameters": {
+        "resource": "service",
+        "operation": "call",
+        "domain": "recorder",
+        "service": "import_statistics",
+        "serviceAttributes": {
+          "attributes": [
+            {
+              "name": "statistic_id",
+              "value": "sensor.grid_energy_import"
+            },
+            {
+              "name": "source",
+              "value": "recorder"
+            },
+            {
+              "name": "unit_of_measurement",
+              "value": "kWh"
+            },
+            {
+              "name": "has_mean",
+              "value": "={{false}}"
+            },
+            {
+              "name": "has_sum",
+              "value": "={{ true }}"
+            },
+            {
+              "name": "stats",
+              "value": "={{ $json.data }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.homeAssistant",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "5dad62f0-8f16-4681-8e5d-9e194ed0a61f",
+      "name": "Spook: update +A hitorical data1",
+      "credentials": {
+        "homeAssistantApi": {
+          "id": "QX8VYOjq6adE8XB3",
+          "name": "Home Assistant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "service",
+        "operation": "call",
+        "domain": "recorder",
+        "service": "import_statistics",
+        "serviceAttributes": {
+          "attributes": [
+            {
+              "name": "statistic_id",
+              "value": "sensor.grid_energy_export"
+            },
+            {
+              "name": "source",
+              "value": "recorder"
+            },
+            {
+              "name": "unit_of_measurement",
+              "value": "kWh"
+            },
+            {
+              "name": "has_mean",
+              "value": "={{false}}"
+            },
+            {
+              "name": "has_sum",
+              "value": "={{ true }}"
+            },
+            {
+              "name": "stats",
+              "value": "={{ $json.data }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.homeAssistant",
+      "typeVersion": 1,
+      "position": [
+        448,
+        192
+      ],
+      "id": "e3cab7b8-ae6a-4544-b05a-a3832b5d37b7",
+      "name": "Spook: update -A hitorical data1",
+      "credentials": {
+        "homeAssistantApi": {
+          "id": "QX8VYOjq6adE8XB3",
+          "name": "Home Assistant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"start\": {{new Date($json.start)}},\n  \"state\": {{ $json['1_8_0'] }},\n  \"sum\": {{ $json['1_8_0'] }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "07a6b678-b249-4c07-bff5-9a8ed2d29815",
+      "name": "Generate 1_8_0 list for stats"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"start\": {{new Date($json.start)}},\n  \"state\": {{ $json['2_8_0'] }},\n  \"sum\": {{ $json['2_8_0'] }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        192
+      ],
+      "id": "b0273d66-ef12-407a-aa71-652886d6d144",
+      "name": "Generate 2_8_0 list for stats"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "start,state, sum",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "e3e8227b-6292-45ef-b151-7121b5d416cd",
+      "name": "Generate 1_8_0 stats"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "start,state, sum",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        224,
+        192
+      ],
+      "id": "86a2c9b2-30d7-420d-ae80-bc1380fbb70c",
+      "name": "Generate 2_8_0 stats"
+    },
+    {
+      "parameters": {
+        "resource": "state",
+        "operation": "upsert",
+        "entityId": "input_number.grid_export_meter",
+        "state": "={{ $('Generate 2_8_0 stats').item.json.data.at(-1).state }}"
+      },
+      "type": "n8n-nodes-base.homeAssistant",
+      "typeVersion": 1,
+      "position": [
+        672,
+        192
+      ],
+      "id": "04dabb3e-b6c7-4a4c-9c87-e70d0e4816b9",
+      "name": "Update input_number.exportt entity state1",
+      "credentials": {
+        "homeAssistantApi": {
+          "id": "QX8VYOjq6adE8XB3",
+          "name": "Home Assistant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "state",
+        "operation": "upsert",
+        "entityId": "input_number.grid_import_meter",
+        "state": "={{ $('Generate 1_8_0 stats').item.json.data.at(-1).state }}"
+      },
+      "type": "n8n-nodes-base.homeAssistant",
+      "typeVersion": 1,
+      "position": [
+        672,
+        0
+      ],
+      "id": "a938601a-269c-4459-a881-50c025d64e73",
+      "name": "Update input_number.import entity state1",
+      "credentials": {
+        "homeAssistantApi": {
+          "id": "QX8VYOjq6adE8XB3",
+          "name": "Home Assistant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -464,
+        96
+      ],
+      "id": "f4fbb9c7-5432-4d2b-80c6-2f86975145ec",
+      "name": "receive data"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Calculate hourly sum and": {
+      "main": [
+        [
+          {
+            "node": "Generate 1_8_0 list for stats",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate 2_8_0 list for stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Spook: update +A hitorical data1": {
+      "main": [
+        [
+          {
+            "node": "Update input_number.import entity state1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Spook: update -A hitorical data1": {
+      "main": [
+        [
+          {
+            "node": "Update input_number.exportt entity state1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 1_8_0 list for stats": {
+      "main": [
+        [
+          {
+            "node": "Generate 1_8_0 stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 2_8_0 list for stats": {
+      "main": [
+        [
+          {
+            "node": "Generate 2_8_0 stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 1_8_0 stats": {
+      "main": [
+        [
+          {
+            "node": "Spook: update +A hitorical data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 2_8_0 stats": {
+      "main": [
+        [
+          {
+            "node": "Spook: update -A hitorical data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "receive data": {
+      "main": [
+        [
+          {
+            "node": "Calculate hourly sum and",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e214f303-1a53-4045-8f8f-3acfd3a57882",
+  "meta": {
+    "instanceId": "9fe57afc4f6e6adc427957894c6a3585c9f0697a1fc3e75decd3c7da514dcf7e"
+  },
+  "id": "tiRznro3lGh2ezsC",
+  "tags": []
+}
